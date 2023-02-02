@@ -1,0 +1,61 @@
+service-registry:
+  username: # set via EnvFile
+  password: # set via EnvFile
+
+eureka:
+  client:
+    enabled: false
+    serviceUrl:
+      defaultZone: http://${service-registry.username}:${service-registry.password}@localhost:8761/eureka/
+
+spring:
+  cloud:
+    loadbalancer:
+      ribbon:
+        enabled: false
+    gateway:
+      default-filters:
+        - TokenRelay
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            token-uri: ${auth-server.url}/realms/${auth-server.realm}/protocol/openid-connect/token
+            authorization-uri: ${auth-server.url}/realms/${auth-server.realm}/protocol/openid-connect/auth
+            userinfo-uri: ${auth-server.url}/realms/${auth-server.realm}/protocol/openid-connect/userinfo
+            user-name-attribute: preferred_username
+        registration:
+          keycloak:
+            provider: keycloak
+            client-id: ${auth-server.client-id}
+            client-secret: ${auth-server.client-secret}
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            client-name: Authentication Server
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        #        curl -i -X POST -H 'Content-Type: application/json' -d '{"configuredLevel": "INFO"}' http://localhost:8765/actuator/loggers/ROOT
+        include: health, env, metrics, threaddump, heapdump, info, configprops, prometheus, loggers
+    loggers:
+      enabled: true
+
+auth-server:
+  url: # set via EnvFile
+  logout-url: ${auth-server.url}/realms/${auth-server.realm}/protocol/openid-connect/logout?redirect_uri=http://localhost:${server.port}/dms-ui/
+  realm: # set via EnvFile
+  client-id: # set via EnvFile
+  client-secret: # set via EnvFile
+
+logging:
+  level:
+    org.octopusden.cloud.apigateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web.reactive.function.client: TRACE
