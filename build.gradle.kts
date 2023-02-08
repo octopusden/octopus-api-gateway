@@ -8,6 +8,10 @@ plugins {
 
 group = "org.octopusden.cloud.api-gateway"
 
+repositories {
+    mavenCentral()
+}
+
 publishing {
     repositories {
         maven {
