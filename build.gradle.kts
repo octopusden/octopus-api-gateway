@@ -3,6 +3,7 @@ plugins {
     id("org.octopusden.octopus-release-management")
     id("org.springframework.boot")
     id("com.bmuschko.docker-spring-boot-application") version "7.1.0"
+    `maven-publish`
     id("io.github.gradle-nexus.publish-plugin")
     signing
 }
