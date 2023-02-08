@@ -3,13 +3,25 @@ plugins {
     id("org.octopusden.octopus-release-management")
     id("org.springframework.boot")
     id("com.bmuschko.docker-spring-boot-application") version "7.1.0"
-    id("maven-publish")
+    id("io.github.gradle-nexus.publish-plugin")
+    signing
 }
 
 group = "org.octopusden.cloud.api-gateway"
 
 repositories {
     mavenCentral()
+}
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+            username.set(System.getenv("MAVEN_USERNAME"))
+            password.set(System.getenv("MAVEN_PASSWORD"))
+        }
+    }
 }
 
 publishing {
