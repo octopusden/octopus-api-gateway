@@ -7,6 +7,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     environment: Prod
+    permissions:
+      packages: write
     steps:
       - uses: actions/checkout@v3
         name: Checkout(switching to commit)
@@ -44,20 +46,20 @@ jobs:
         run: |
           VERSION_PATCH=${{ steps.version.outputs.group3 }}
           echo "BUILD_VERSION=${{ steps.version.outputs.group1 }}.${{ steps.version.outputs.group2 }}.$(($VERSION_PATCH+1))" >> $GITHUB_ENV
+        env:
+          BUILD_VERSION: ${{ steps.version.outputs.group1 }}.${{ steps.version.outputs.group2 }}.$((${{ steps.version.outputs.group3 }}+1))
       - run: |
           echo "BUILD_VERSION: ${{ env.BUILD_VERSION }}"
       - name: Build with Gradle
-        run: ./gradlew build dockerBuildImage -x test -Ppublishing.docker.registry=ghcr.io/octopusden -Pdocker.registry=docker.io -Pversion=${{ steps.version.outputs.version }} --info
-        env:
-          BUILD_VERSION: ${{ steps.version.outputs.version }}
+        run: ./gradlew build dockerBuildImage -x test -Ppublishing.docker.registry=ghcr.io/octopusden -Pdocker.registry=docker.io -Pversion=${{ env.BUILD_VERSION }} --info
       - name: Publish
-        run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository -Pversion=${{ steps.version.outputs.version }}
+        run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository -Pversion=${{ env.BUILD_VERSION }}  -s
         env:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.GPG_PRIVATE_KEY }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.GPG_PASSPHRASE }}
-          BUILD_VERSION: ${{ steps.version.outputs.version }}
+#          BUILD_VERSION: ${{ steps.version.outputs.version }}
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -65,10 +67,10 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push to docker registry
-        run: docker push ghcr.io/octopusden/employee-service:${{ steps.version.outputs.version }}
+        run: docker push ghcr.io/octopusden/api-gateway:${{ env.BUILD_VERSION }}
       - name: Create Release
         uses: marvinpinto/action-automatic-releases@master
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           prerelease: false
-          automatic_release_tag: ${{ github.event.client_payload.build_version }}
+          automatic_release_tag: v${{ env.BUILD_VERSION }}
