@@ -10,6 +10,11 @@ plugins {
 
 group = "org.octopusden.cloud.api-gateway"
 
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
 tasks.withType<GenerateModuleMetadata> {
     // The value 'enforced-platform' is provided in the validation
     // error message
@@ -66,6 +71,7 @@ publishing {
         }
     }
 }
+/*
 
 signing {
     val signingKey: String? by project
@@ -73,6 +79,7 @@ signing {
     useInMemoryPgpKeys(signingKey, signingPassword)
     sign(publishing.publications["bootJar"])
 }
+*/
 
 springBoot {
     buildInfo()
