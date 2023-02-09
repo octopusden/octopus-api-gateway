@@ -71,7 +71,7 @@ publishing {
         }
     }
 }
-/*
+
 
 signing {
     val signingKey: String? by project
@@ -79,7 +79,7 @@ signing {
     useInMemoryPgpKeys(signingKey, signingPassword)
     sign(publishing.publications["bootJar"])
 }
-*/
+
 
 springBoot {
     buildInfo()
