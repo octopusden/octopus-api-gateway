@@ -49,7 +49,7 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build dockerBuildImage -x test -Ppublishing.docker.registry=ghcr.io/octopusden -Pdocker.registry=docker.io -Pversion=${{ env.BUILD_VERSION }} --info
         env:
-          BUILD_VERSION: ${{ steps.version.outputs.version }}
+          BUILD_VERSION: ${{ steps.version.outputs.group1 }}.${{ steps.version.outputs.group2 }}.$(($VERSION_PATCH+1))
       - name: Publish
         run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository -Pversion=${{ env.BUILD_VERSION }} --debug -s
         env:
@@ -57,7 +57,7 @@ jobs:
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.GPG_PRIVATE_KEY }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.GPG_PASSPHRASE }}
-          BUILD_VERSION: ${{ steps.version.outputs.version }}
+#          BUILD_VERSION: ${{ steps.version.outputs.version }}
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -65,7 +65,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push to docker registry
-        run: docker push ghcr.io/octopusden/api-gateway:${{ steps.version.outputs.version }}
+        run: docker push ghcr.io/octopusden/api-gateway:${{ env.BUILD_VERSION }}
       - name: Create Release
         uses: marvinpinto/action-automatic-releases@master
         with:
