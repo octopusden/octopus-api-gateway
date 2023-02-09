@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: Prod
     permissions:
-      packages: create
+      packages: write
     steps:
       - uses: actions/checkout@v3
         name: Checkout(switching to commit)
