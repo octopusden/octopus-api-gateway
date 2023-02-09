@@ -33,11 +33,12 @@ publishing {
     }
     publications {
         create<MavenPublication>("bootJar") {
+            from(components["java"])
             artifact(tasks.getByName("bootJar"))
             pom {
                 name.set(project.name)
                 description.set("Octopus module: ${project.name}")
-                url.set("https://github.com/octopusden/octopus-employee-service.git")
+                url.set("https://github.com/octopusden/octopus-api-gateway.git")
                 licenses {
                     license {
                         name.set("The Apache License, Version 2.0")
