@@ -73,4 +73,4 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           prerelease: false
-          automatic_release_tag: ${{ env.BUILD_VERSION }}
+          automatic_release_tag: v${{ env.BUILD_VERSION }}
