@@ -7,9 +7,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     environment: Prod
-    permissions:
-      packages: write
-      contents: write
+#    permissions:
+#      packages: write
+#      contents: write
     steps:
       - uses: actions/checkout@v3
         name: Checkout(switching to commit)
@@ -66,12 +66,12 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GH_ACCESS_TOKEN }}
       - name: Push to docker registry
         run: docker push ghcr.io/octopusden/api-gateway:${{ env.BUILD_VERSION }}
       - name: Create Release
         uses: marvinpinto/action-automatic-releases@master
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          repo_token: ${{ secrets.GH_ACCESS_TOKEN }}
           prerelease: false
           automatic_release_tag: v${{ env.BUILD_VERSION }}
