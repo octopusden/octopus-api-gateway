@@ -36,4 +36,4 @@ jobs:
           tag-value: ${{ steps.bump_semver.outputs.new_version }}
           exit-if-empty: true
       - name: Build with Gradle
-        run: ./gradlew build dockerBuildImage -x test -Ppublishing.docker.registry=ghcr.io/octopusden -Pdocker.registry=docker.io -PbuildVersion=${{ steps.version.outputs.version }} -Pversion=${{ steps.version.outputs.version }}
+        run: ./gradlew build dockerBuildImage -Ppublishing.docker.registry=ghcr.io/octopusden -Pdocker.registry=docker.io -PbuildVersion=${{ steps.version.outputs.version }} -Pversion=${{ steps.version.outputs.version }}
