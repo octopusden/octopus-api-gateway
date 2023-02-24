@@ -29,7 +29,7 @@ jobs:
       - name: Validate Gradle wrapper
         uses: gradle/wrapper-validation-action@v1
       - name: Build with Gradle
-        run: ./gradlew build dockerBuildImage -x test -Ppublishing.docker.registry=ghcr.io/${{ github.repository_owner }} -Pdocker.registry=docker.i -PbuildVersion=${{ github.event.client_payload.project_version }} -Pversion=${{ github.event.client_payload.project_version }} --info
+        run: ./gradlew build dockerBuildImage -Ppublishing.docker.registry=ghcr.io/${{ github.repository_owner }} -Pdocker.registry=docker.i -PbuildVersion=${{ github.event.client_payload.project_version }} -Pversion=${{ github.event.client_payload.project_version }} --info
       - name: Publish
         run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository -PbuildVersion=${{ github.event.client_payload.project_version }} -Pversion=${{ github.event.client_payload.project_version }}  -s
         env:
