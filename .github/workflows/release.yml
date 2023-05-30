@@ -1,77 +1,11 @@
-name: BUILD AND RELEASE
+name: Gradle release
 
-on:
-  workflow_dispatch:
+on: workflow_dispatch
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    environment: Prod
-    permissions:
-      packages: write
-      contents: write
-    steps:
-      - uses: actions/checkout@v3
-        name: Checkout(switching to commit)
-      - name: Set up JDK 11
-        uses: actions/setup-java@v3
-        with:
-          java-version: '11'
-          distribution: 'adopt'
-          cache: 'gradle'
-      - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v1
-      - name: Get the tag version
-        id: tag_version
-        uses: oprypin/find-latest-tag@v1
-        with:
-          repository: octopusden/octopus-api-gateway
-          regex: '^v([0-9]+)\..*'
-      - uses: octopusden/octopus-base/.github/actions/get-version@main
-        name: Get version
-        id: version
-        with:
-          tag-value: ${{ steps.tag_version.outputs.tag }}
-          exit-if-empty: false
-      - run: |
-          echo "MAJOR: ${{ steps.version.outputs.group1 }}"
-          echo "MINOR: ${{ steps.version.outputs.group2 }}"
-          echo "PATCH: ${{ steps.version.outputs.group3 }}"
-      - if: ${{ steps.version.outputs.group1 == ''}}
-        run: echo "BUILD_VERSION=2.0.0" >> $GITHUB_ENV
-      - if: ${{ steps.version.outputs.group2 == ''}}
-        run: echo "BUILD_VERSION=${{ steps.version.outputs.group1 }}.0.0" >> $GITHUB_ENV
-      - if: ${{ steps.version.outputs.group3 == ''}}
-        run: echo "BUILD_VERSION=${{ steps.version.outputs.group1 }}.${{ steps.version.outputs.group2 }}.0" >> $GITHUB_ENV
-      - if: ${{ steps.version.outputs.group3 != ''}}
-        run: |
-          VERSION_PATCH=${{ steps.version.outputs.group3 }}
-          echo "BUILD_VERSION=${{ steps.version.outputs.group1 }}.${{ steps.version.outputs.group2 }}.$(($VERSION_PATCH+1))" >> $GITHUB_ENV
-        env:
-          BUILD_VERSION: ${{ steps.version.outputs.group1 }}.${{ steps.version.outputs.group2 }}.$((${{ steps.version.outputs.group3 }}+1))
-      - run: |
-          echo "BUILD_VERSION: ${{ env.BUILD_VERSION }}"
-      - name: Build with Gradle
-        run: ./gradlew build dockerBuildImage -x test -Ppublishing.docker.registry=ghcr.io/octopusden -Pdocker.registry=docker.io -Pversion=${{ env.BUILD_VERSION }} --info
-      - name: Publish
-        run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository -Pversion=${{ env.BUILD_VERSION }}  -s
-        env:
-          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
-          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.GPG_PRIVATE_KEY }}
-          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.GPG_PASSPHRASE }}
-#          BUILD_VERSION: ${{ steps.version.outputs.version }}
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Push to docker registry
-        run: docker push ghcr.io/octopusden/api-gateway:${{ env.BUILD_VERSION }}
-      - name: Create Release
-        uses: marvinpinto/action-automatic-releases@master
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          prerelease: false
-          automatic_release_tag: v${{ env.BUILD_VERSION }}
+    uses: octopusden/octopus-base/.github/workflows/common-java-gradle-release.yml@gradle-templates
+    with:
+      java-version: "11"
+      docker-image: false
+    secrets: inherit
