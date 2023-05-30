@@ -3,9 +3,9 @@ name: Gradle release
 on: workflow_dispatch
 
 jobs:
-  build:
+  build-release-publish:
     uses: octopusden/octopus-base/.github/workflows/common-java-gradle-release.yml@gradle-templates
-    secrets: inherit
     with:
       java-version: "11"
       docker-image: false
+    secrets: inherit
