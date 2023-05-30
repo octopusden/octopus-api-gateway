@@ -7,5 +7,5 @@ jobs:
     uses: octopusden/octopus-base/.github/workflows/common-java-gradle-release.yml@gradle-templates
     with:
       java-version: "11"
-      docker-image: false
+      docker-image: true
     secrets: inherit
