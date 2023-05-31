@@ -6,7 +6,7 @@ jobs:
   release:
     uses: octopusden/octopus-base/.github/workflows/common-java-gradle-release.yml@gradle-templates
     with:
+      flow-type: public
       java-version: "11"
       docker-image: api-gateway
-      flow-type: public
     secrets: inherit
