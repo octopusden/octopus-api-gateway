@@ -8,3 +8,4 @@ jobs:
     with:
       java-version: "11"
       docker-image: api-gateway
+      flow-type: public
