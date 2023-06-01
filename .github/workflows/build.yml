@@ -4,8 +4,8 @@ on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build:
-    uses: octopusden/octopus-base/.github/workflows/common-java-gradle-build.yml@gradle-templates
+    uses: octopusden/octopus-base/.github/workflows/common-java-gradle-build.yml@v2.0
     with:
       flow-type: public
-      java-version: "11"
+      java-version: '11'
       docker-image: api-gateway
