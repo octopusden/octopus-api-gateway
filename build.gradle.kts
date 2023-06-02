@@ -58,8 +58,8 @@ publishing {
                     }
                 }
                 scm {
-                    url.set("https://github.com/kzaporozhtsev/octopus-employee-service.git")
-                    connection.set("scm:git://github.com/octopusden/octopus-employee-service.git")
+                    url.set("https://github.com/octopusden/octopus-api-gateway.git")
+                    connection.set("scm:git://github.com/octopusden/octopus-api-gateway.git")
                 }
                 developers {
                     developer {
