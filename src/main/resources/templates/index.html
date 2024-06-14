@@ -1,33 +1,25 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="https://www.thymeleaf.org">
+<html lang="en">
 <head>
-    <title>Spring Security - OAuth 2.0 Login</title>
-    <meta charset="utf-8"/>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>API Gateway</title>
+    <link rel='stylesheet' type='text/css' th:href='@{css/styles.css}'>
+    <link rel='stylesheet' type='text/css' th:href='@{css/button.css}'>
 </head>
 <body>
-<div style="float: right" th:fragment="logout">
-    <div style="float:left">
-        <span style="font-weight:bold">User: </span><span th:text="${userName}"></span>
-    </div>
-    <div style="float:none">&nbsp;</div>
-    <div style="float:right">
-        <a th:href="@{/logout}">Log Out</a>
-    </div>
-</div>
-<h1>OAuth 2.0 Login with Spring Security</h1>
-<div>
-    You are successfully logged in <span style="font-weight:bold" th:text="${userName}"></span>
-    via the OAuth 2.0 Client <span style="font-weight:bold" th:text="${clientName}"></span>
-</div>
-<div>&nbsp;</div>
-<div>
-    <span style="font-weight:bold">User Attributes:</span>
-    <ul>
-        <li th:each="userAttribute : ${userAttributes}">
-            <span style="font-weight:bold" th:text="${userAttribute.key}"></span>: <span
-                th:text="${userAttribute.value}"></span>
-        </li>
-    </ul>
+<div class='wrapper'>
+    <form name='signinform' class='card form' method="post" action="/logout">
+        <div id='error-placeholder'></div>
+        <div id='root' class='form-wrapper container'>
+            <div class='continue'>Do you want to logout or continue as <span style="font-weight:bold" th:text="${userName}"></span>?</div>
+            <button class="material-button-raised" type="submit">Log Out</button>
+            <input class="material-button-raised" type="button" name="cancel" value="Continue" th:onclick="'window.location.href = \'' + @{${redirectUrl}} + '\''"/>
+            <input type="hidden" name="_csrf" th:value="${csrfToken}">
+        </div>
+    </form>
 </div>
 </body>
 </html>
