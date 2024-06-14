@@ -1,12 +1,6 @@
-service-registry:
-  username: # set via EnvFile
-  password: # set via EnvFile
-
 eureka:
   client:
     enabled: false
-    serviceUrl:
-      defaultZone: http://${service-registry.username}:${service-registry.password}@localhost:8761/eureka/
 
 spring:
   cloud:
@@ -25,11 +19,13 @@ spring:
             authorization-uri: ${auth-server.url}/realms/${auth-server.realm}/protocol/openid-connect/auth
             userinfo-uri: ${auth-server.url}/realms/${auth-server.realm}/protocol/openid-connect/userinfo
             user-name-attribute: preferred_username
+            jwk-set-uri: ${auth-server.url}/realms/${auth-server.realm}/protocol/openid-connect/certs
         registration:
           keycloak:
-            provider: keycloak
+            scope: openid
             client-id: ${auth-server.client-id}
             client-secret: ${auth-server.client-secret}
+            provider: keycloak
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
             client-name: Authentication Server
