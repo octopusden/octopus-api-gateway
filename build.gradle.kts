@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm")
     id("org.octopusden.octopus-release-management")
     id("org.springframework.boot")
-    id("com.bmuschko.docker-spring-boot-application") version "7.1.0"
+    id("com.bmuschko.docker-spring-boot-application")
     `maven-publish`
     id("io.github.gradle-nexus.publish-plugin")
     signing
@@ -13,6 +13,11 @@ group = "org.octopusden.cloud.api-gateway"
 java {
     withJavadocJar()
     withSourcesJar()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 tasks.withType<GenerateModuleMetadata> {
@@ -125,7 +130,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
-    implementation("org.thymeleaf.extras:thymeleaf-extras-springsecurity5")
+    implementation("org.thymeleaf.extras:thymeleaf-extras-springsecurity5:3.0.3.RELEASE")
 
     implementation("org.octopusden.octopus-cloud-commons:octopus-security-common:${project.properties["cloud-commons.version"]}") {
         exclude("org.springframework.security")
