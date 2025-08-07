@@ -17,12 +17,14 @@ import reactor.core.publisher.Mono
 @Configuration
 @EnableWebFluxSecurity
 @Import(AuthServerClient::class)
-open class SecurityConfig(@Value("\${auth-server.logout-url}") private val logoutUrl: String) {
+open class SecurityConfig(
+    @Value("\${auth-server.logout-url}") private val logoutUrl: String
+) {
     @Bean
     open fun springSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
         http.authorizeExchange { exchanges: AuthorizeExchangeSpec ->
             exchanges.pathMatchers("/dms-ui/actuator/**").permitAll()
-            exchanges.pathMatchers("/","/dms-ui/**").authenticated()
+            exchanges.pathMatchers("/", "/dms-ui/**").authenticated()
             exchanges.anyExchange().permitAll()
         }
             .oauth2Login(Customizer.withDefaults())
