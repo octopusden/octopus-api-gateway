@@ -14,7 +14,6 @@ import org.springframework.security.config.web.server.ServerHttpSecurity.Authori
 import org.springframework.security.web.server.SecurityWebFilterChain
 import reactor.core.publisher.Mono
 
-
 @Configuration
 @EnableWebFluxSecurity
 @Import(AuthServerClient::class)
