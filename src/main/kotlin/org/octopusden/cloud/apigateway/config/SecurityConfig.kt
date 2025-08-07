@@ -26,13 +26,14 @@ open class SecurityConfig(@Value("\${auth-server.logout-url}") private val logou
             exchanges.anyExchange().permitAll()
         }
             .oauth2Login(Customizer.withDefaults())
-            .logout()
-            .logoutSuccessHandler { exchange, _ ->
-                exchange.exchange.response.statusCode = HttpStatus.FOUND
-                exchange.exchange.response.headers.add(HttpHeaders.LOCATION, logoutUrl)
-                Mono.empty()
+            .logout { logout ->
+                logout.logoutSuccessHandler { exchange, _ ->
+                    exchange.exchange.response.statusCode = HttpStatus.FOUND
+                    exchange.exchange.response.headers.add(HttpHeaders.LOCATION, logoutUrl)
+                    Mono.empty()
+                }
             }
-            .and().csrf().disable()
+            .csrf { it.disable() }
         return http.build()
     }
 }
