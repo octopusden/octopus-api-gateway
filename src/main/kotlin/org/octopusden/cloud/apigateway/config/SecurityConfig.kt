@@ -18,7 +18,8 @@ import reactor.core.publisher.Mono
 @EnableWebFluxSecurity
 @Import(AuthServerClient::class)
 open class SecurityConfig(
-    @Value("\${auth-server.logout-url}") private val logoutUrl: String
+    @Value("\${auth-server.logout-url}")
+    private val logoutUrl: String
 ) {
     @Bean
     open fun springSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
