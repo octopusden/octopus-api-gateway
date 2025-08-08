@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm")
     id("org.octopusden.octopus-release-management")
     id("org.springframework.boot")
-    id("com.bmuschko.docker-spring-boot-application") version "7.1.0"
+    id("com.bmuschko.docker-spring-boot-application")
     `maven-publish`
     id("io.github.gradle-nexus.publish-plugin")
     signing
@@ -20,7 +20,6 @@ tasks.withType<GenerateModuleMetadata> {
     // error message
     suppressedValidationErrors.add("enforced-platform")
 }
-
 
 repositories {
     mavenCentral()
@@ -72,14 +71,12 @@ publishing {
     }
 }
 
-
 signing {
     val signingKey: String? by project
     val signingPassword: String? by project
     useInMemoryPgpKeys(signingKey, signingPassword)
     sign(publishing.publications["bootJar"])
 }
-
 
 springBoot {
     buildInfo()
@@ -109,11 +106,10 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-gateway")
     implementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
 
-//    implementation("org.springframework.cloud:spring-cloud-starter-netflix-hystrix")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
 
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
-    implementation("io.micrometer:micrometer-registry-prometheus:1.7.2")
+    implementation("io.micrometer:micrometer-registry-prometheus")
 
     implementation("org.springframework.cloud:spring-cloud-starter-config")
 
@@ -125,7 +121,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
-    implementation("org.thymeleaf.extras:thymeleaf-extras-springsecurity5")
+    implementation("org.thymeleaf.extras:thymeleaf-extras-springsecurity6")
 
     implementation("org.octopusden.octopus-cloud-commons:octopus-security-common:${project.properties["cloud-commons.version"]}") {
         exclude("org.springframework.security")

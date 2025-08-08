@@ -15,7 +15,10 @@ import java.util.concurrent.ConcurrentHashMap
 @Component
 class BasicAuthFilter(private val authServerClient: AuthServerClient) : GlobalFilter {
 
-    override fun filter(exchange: ServerWebExchange, chain: GatewayFilterChain): Mono<Void> {
+    override fun filter(
+        exchange: ServerWebExchange,
+        chain: GatewayFilterChain
+    ): Mono<Void> {
         exchange.request
             .headers["Authorization"]
             ?.let { authHeader ->
