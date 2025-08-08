@@ -109,7 +109,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webflux")
 
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
-    implementation("io.micrometer:micrometer-registry-prometheus:1.7.2")
+    implementation("io.micrometer:micrometer-registry-prometheus")
 
     implementation("org.springframework.cloud:spring-cloud-starter-config")
 
