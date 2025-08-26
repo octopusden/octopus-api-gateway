@@ -95,7 +95,7 @@ val octopusGithubDockerRegistry = System.getenv().getOrDefault("OCTOPUS_GITHUB_D
 docker {
     springBootApplication {
         baseImage.set("$dockerRegistry/eclipse-temurin:21-jdk")
-        ports.set(listOf(8765, 8765))
+        ports.set(listOf(8765))
         images.set(setOf("$octopusGithubDockerRegistry/octopusden/${project.name}:${project.version}"))
     }
 }
