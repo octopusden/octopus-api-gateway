@@ -11,8 +11,15 @@ plugins {
 group = "org.octopusden.cloud.api-gateway"
 
 java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
     withJavadocJar()
     withSourcesJar()
+}
+
+kotlin {
+    jvmToolchain(21)
 }
 
 tasks.withType<GenerateModuleMetadata> {
