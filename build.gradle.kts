@@ -97,6 +97,13 @@ tasks.getByName("dockerBuildImage").doFirst {
     validateDockerRegistryParams()
 }
 
+tasks.named("dockerPushImage") {
+    doFirst {
+        println("Waiting for 30 seconds before pushing the image...")
+        Thread.sleep(30_000) // 30 секунд
+    }
+}
+
 dependencies {
     implementation(platform("org.springframework.cloud:spring-cloud-dependencies:${project.property("spring-cloud.version")}"))
     implementation(enforcedPlatform("org.springframework.boot:spring-boot-dependencies:${project.properties["spring-boot.version"]}"))
