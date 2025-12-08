@@ -13,7 +13,7 @@ class GatewayController(gatewayProperties: GatewayProperties) {
         route.predicates.any { predicate ->
             predicate.name == "Path" && predicate.args.values.any { it == "/${route.id}/**" }
         }
-    }.map { it.id }
+    }.map { it.id }.sorted()
 
     @GetMapping
     fun index(model: Model, @AuthenticationPrincipal oauth2User: OAuth2User): String {
