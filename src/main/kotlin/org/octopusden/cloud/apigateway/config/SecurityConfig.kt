@@ -24,8 +24,7 @@ open class SecurityConfig(
     @Bean
     open fun springSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
         http.authorizeExchange { exchanges: AuthorizeExchangeSpec ->
-            exchanges.pathMatchers("/dms-ui/actuator/**").permitAll()
-            exchanges.pathMatchers("/", "/dms-ui/**").authenticated()
+            exchanges.pathMatchers("/").authenticated()
             exchanges.anyExchange().permitAll()
         }
             .oauth2Login(Customizer.withDefaults())
