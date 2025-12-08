@@ -27,9 +27,7 @@ open class SecurityConfig(
             exchanges.anyExchange().permitAll()
         }.oauth2Login(
             Customizer.withDefaults()
-        ).oidcLogout {
-            it.backChannel(Customizer.withDefaults())
-        }.logout { logout ->
+        ).logout { logout ->
             logout.logoutSuccessHandler { exchange, _ ->
                 exchange.exchange.response.apply {
                     statusCode = HttpStatus.FOUND
