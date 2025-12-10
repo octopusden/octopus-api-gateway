@@ -47,6 +47,10 @@ h1 {
     margin-top: 10px;
 }
 
+.routes {
+    margin-top: 36px;
+}
+
 .wrapper {
     background: linear-gradient(110deg, #00AFE7 25%, #B00084 25%, #B00084 50%, #ABCB54 50%, #ABCB54 75%, #FFDB00 75%);
     display: flex;

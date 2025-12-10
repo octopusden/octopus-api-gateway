@@ -16,7 +16,11 @@
         <div id='root' class='form-wrapper container'>
             <div class='continue'>Do you want to logout or continue as <span style="font-weight:bold" th:text="${userName}"></span>?</div>
             <button class="material-button-raised" type="submit">Log Out</button>
-            <input class="material-button-raised" type="button" name="cancel" value="Continue" th:onclick="'window.location.href = \'' + @{${redirectUrl}} + '\''"/>
+            <div class='routes'>
+                <div th:each="routeId: ${routeIds}">
+                    <input class="material-button-raised" type="button" name="cancel" th:value="${routeId}" th:onclick="'window.location.href = \'/' + @{${routeId}} + '/\''"/>
+                </div>
+            </div>
             <input type="hidden" name="_csrf" th:value="${csrfToken}">
         </div>
     </form>

@@ -12,7 +12,6 @@ import org.springframework.security.config.annotation.web.reactive.EnableWebFlux
 import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.config.web.server.ServerHttpSecurity.AuthorizeExchangeSpec
 import org.springframework.security.web.server.SecurityWebFilterChain
-import reactor.core.publisher.Mono
 
 @Configuration
 @EnableWebFluxSecurity
@@ -24,19 +23,20 @@ open class SecurityConfig(
     @Bean
     open fun springSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
         http.authorizeExchange { exchanges: AuthorizeExchangeSpec ->
-            exchanges.pathMatchers("/dms-ui/actuator/**").permitAll()
-            exchanges.pathMatchers("/", "/dms-ui/**").authenticated()
+            exchanges.pathMatchers("/").authenticated()
             exchanges.anyExchange().permitAll()
-        }
-            .oauth2Login(Customizer.withDefaults())
-            .logout { logout ->
-                logout.logoutSuccessHandler { exchange, _ ->
-                    exchange.exchange.response.statusCode = HttpStatus.FOUND
-                    exchange.exchange.response.headers.add(HttpHeaders.LOCATION, logoutUrl)
-                    Mono.empty()
+        }.oauth2Login(
+            Customizer.withDefaults()
+        ).logout { logout ->
+            logout.logoutSuccessHandler { exchange, _ ->
+                exchange.exchange.response.apply {
+                    statusCode = HttpStatus.FOUND
+                    headers.add(HttpHeaders.LOCATION, logoutUrl)
+                    cookies.remove("JSESSIONID")
                 }
+                exchange.exchange.session.flatMap { it.invalidate() }
             }
-            .csrf { it.disable() }
+        }.csrf { it.disable() }
         return http.build()
     }
 }
