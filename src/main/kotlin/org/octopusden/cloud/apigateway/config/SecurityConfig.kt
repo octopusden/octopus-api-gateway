@@ -1,42 +1,56 @@
 package org.octopusden.cloud.apigateway.config
 
 import org.octopusden.cloud.commons.security.client.AuthServerClient
-import org.springframework.beans.factory.annotation.Value
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
-import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpStatus
 import org.springframework.security.config.Customizer
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
 import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.config.web.server.ServerHttpSecurity.AuthorizeExchangeSpec
+import org.springframework.security.oauth2.client.oidc.web.server.logout.OidcClientInitiatedServerLogoutSuccessHandler
+import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository
 import org.springframework.security.web.server.SecurityWebFilterChain
+import org.springframework.security.web.server.authentication.logout.ServerLogoutSuccessHandler
 
 @Configuration
 @EnableWebFluxSecurity
 @Import(AuthServerClient::class)
 open class SecurityConfig(
-    @Value("\${auth-server.logout-url}")
-    private val logoutUrl: String
+    private val clientRegistrationRepository: ReactiveClientRegistrationRepository,
 ) {
     @Bean
     open fun springSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
-        http.authorizeExchange { exchanges: AuthorizeExchangeSpec ->
-            exchanges.pathMatchers("/").authenticated()
-            exchanges.anyExchange().permitAll()
-        }.oauth2Login(
-            Customizer.withDefaults()
-        ).logout { logout ->
-            logout.logoutSuccessHandler { exchange, _ ->
-                exchange.exchange.response.apply {
-                    statusCode = HttpStatus.FOUND
-                    headers.add(HttpHeaders.LOCATION, logoutUrl)
-                    cookies.remove("JSESSIONID")
-                }
-                exchange.exchange.session.flatMap { it.invalidate() }
+        http
+            .authorizeExchange { exchanges: AuthorizeExchangeSpec ->
+                exchanges
+                    .pathMatchers(
+                        "/logout/connect/back-channel/**"
+                    ).permitAll()
+                    .pathMatchers(
+                        "/"
+                    ).authenticated()
+                    .anyExchange().permitAll()
             }
-        }.csrf { it.disable() }
+            .oauth2Login(Customizer.withDefaults())
+            .logout { logout ->
+                logout.logoutSuccessHandler(oidcLogoutSuccessHandler())
+            }
+            .oidcLogout { oidcLogout ->
+                oidcLogout.backChannel {}
+            }
+            .csrf { it.disable() }
         return http.build()
+    }
+
+    private fun oidcLogoutSuccessHandler(): ServerLogoutSuccessHandler {
+        val handler = OidcClientInitiatedServerLogoutSuccessHandler(clientRegistrationRepository)
+        handler.setPostLogoutRedirectUri("{baseUrl}")
+        return handler
+    }
+
+    companion object {
+        private val log = LoggerFactory.getLogger(SecurityConfig::class.java)
     }
 }
