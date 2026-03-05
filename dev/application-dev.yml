@@ -10,19 +10,6 @@ spring:
     gateway:
       default-filters:
         - TokenRelay
-      routes:
-        - id: components-registry-service
-          uri: http://components-registry-service-production.f1.svc.cluster.local:8080
-          predicates:
-            - Path=/components-registry-service/**
-        - id: dms-getver
-          uri: http://dms-getver-production.f1.svc.cluster.local:8080
-          predicates:
-            - Path=/dms-getver/**
-        - id: dms-service
-          uri: http://dms-production.f1.svc.cluster.local:8080
-          predicates:
-            - Path=/dms-service/**
   security:
     oauth2:
       client:
@@ -45,11 +32,11 @@ spring:
             client-name: Authentication Server
 
 auth-server:
-  url: http://localhost:8180
-  logout-url: ${auth-server.url}/realms/${auth-server.realm}/protocol/openid-connect/logout
-  realm: dev
-  client-id: api-gateway-dev
-  client-secret: secret1
+  url: # set via EnvFile
+  logout-url: ${auth-server.url}/realms/${auth-server.realm}/protocol/openid-connect/logout?redirect_uri=http://localhost:${server.port}/dms-ui/
+  realm: # set via EnvFile
+  client-id: # set via EnvFile
+  client-secret: # set via EnvFile
 
 management:
   endpoint:

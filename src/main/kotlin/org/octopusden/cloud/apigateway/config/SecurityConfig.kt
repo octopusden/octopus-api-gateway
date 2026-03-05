@@ -49,8 +49,4 @@ open class SecurityConfig(
         handler.setPostLogoutRedirectUri("{baseUrl}")
         return handler
     }
-
-    companion object {
-        private val log = LoggerFactory.getLogger(SecurityConfig::class.java)
-    }
 }
