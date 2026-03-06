@@ -91,7 +91,7 @@ Repository: `https://github.com/octopusden/octopus-dms-ui`
             Mono.empty()
         }
 }
-// Disable Cross-Site Request Forgery protection
+// Disable Cross-Origin Resource Sharing (CORS)
 .csrf { it.disable() }
 ```
 
@@ -105,7 +105,7 @@ Examples of Keycloak configuration taken from `service-config`, which are passed
 
 ```yaml
 auth-server:
- url: https://<sso URL>
+ url: https://<sso URL>
   realm: f1
 ```
 
@@ -572,8 +572,8 @@ private fun translateBasicAuthToBearerAccessToken(basicAuth: String): String? {
                     refreshToken(existedOfflineJwt)
                 } else {
                     // Otherwise return nothing
-                    null
                     log.debug("Refresh token for '$username' is expired")
+                    null
                 }
             }
         } ?: kotlin.run {

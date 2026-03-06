@@ -46,7 +46,7 @@ Repository: `https://github.com/octopusden/octopus-dms-ui`
 - не управляет токенами напрямую, а только отображение и отправка запросов;
 - `/auth/me` при старте. Получает объект пользователя с ролями (и вычисленными правами) чтобы понимать что отображать, а что нет.
 
-### За что отвечает backend
+### 1.4 За что отвечает backend
 
 - поднимает OAuth2-аутентификацию через keycloak (SSO).
 - реверс прокси на `dms-service` через `spring-cloud-gateway`. Маршрутизация `/auth/**` и `/rest/api/**` на `dms-service`. Фильтр `TokenRelay` пробрасывает access token из `OAuth2AuthorizedClient`.
@@ -107,8 +107,8 @@ Repository: `https://github.com/octopusden/octopus-dms-ui`
 
 ```yaml
 auth-server:
- url: https://<sso URL>
- realm: f1
+ url: https://<sso URL>
+  realm: f1
 ```
 
 В этой конфиге указаны заранее определенные переменные auth-server-а, которые указывают на путь до SSO, а также realm `f1` (изолированная область в которой настраиваются пользователи, клиенты, роли и т.д.). Эти данные будут использоваться как в других конфигах в качестве переменной, так и в библиотеке `cloud-commons`.
@@ -123,17 +123,17 @@ spring:
    oauth2:
      client:
        provider: 
-         // описание сервера авторизации keycloak
+         # описание сервера авторизации keycloak
          keycloak:
-		   // ручка для получения и обновления токенов (access, refresh)
+           # ручка для получения и обновления токенов (access, refresh)
            token-uri: ${auth-server.url}/realms/${auth-server.realm}/protocol/openid-connect/token
-	       // куда перенаправляем при доступе к защищенному ресурсу
+	   # куда перенаправляем при доступе к защищенному ресурсу
            authorization-uri: ${auth-server.url}/realms/${auth-server.realm}/protocol/openid-connect/auth             
-           // ручка получения информации о пользователе по access_token            
+           # ручка получения информации о пользователе по access_token            
            userinfo-uri: ${auth-server.url}/realms/${auth-server.realm}/protocol/openid-connect/userinfo 
-           // какое поле считаем username-ом
+           # какое поле считаем username-ом
            user-name-attribute: preferred_username
-           // используется для проверки подписи и валидности JWT
+           # используется для проверки подписи и валидности JWT
            jwk-set-uri: ${auth-server.url}/realms/${auth-server.realm}/protocol/openid-connect/certs
 ```
 
@@ -329,7 +329,7 @@ http.authorizeExchange { exchanges: AuthorizeExchangeSpec ->
 `api-gateway.yaml`
 
 ```yaml
-// Все это тоже что и у dms-ui
+# Все это тоже что и у dms-ui
 spring:
   cloud:
     gateway:
@@ -368,7 +368,7 @@ spring:
           uri: http://components-registry-service-<production/test>.f1.svc.cluster.local:8080
           predicates:
             - Path=/components-registry-service/**
-          // Убираем "/components-registry-service/" из запроса к сервису для правильной обработки
+          # Убираем "/components-registry-service/" из запроса к сервису для правильной обработки
           filters:
             - StripPrefix=1
 
@@ -573,8 +573,8 @@ private fun translateBasicAuthToBearerAccessToken(basicAuth: String): String? {
                     refreshToken(existedOfflineJwt)
                 } else {
                    // Иначе ничего) 
-                    null
                     log.debug("Refresh token for '$username' is expired")
+                    null
                 }
             }
         } ?: kotlin.run {
