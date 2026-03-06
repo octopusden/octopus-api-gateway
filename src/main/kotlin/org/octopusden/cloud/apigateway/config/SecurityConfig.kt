@@ -1,7 +1,6 @@
 package org.octopusden.cloud.apigateway.config
 
 import org.octopusden.cloud.commons.security.client.AuthServerClient
-import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
@@ -38,7 +37,7 @@ open class SecurityConfig(
                 logout.logoutSuccessHandler(oidcLogoutSuccessHandler())
             }
             .oidcLogout { oidcLogout ->
-                oidcLogout.backChannel {}
+                oidcLogout.backChannel(Customizer.withDefaults())
             }
             .csrf { it.disable() }
         return http.build()
