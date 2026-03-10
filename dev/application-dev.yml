@@ -33,7 +33,6 @@ spring:
 
 auth-server:
   url: # set via EnvFile
-  logout-url: ${auth-server.url}/realms/${auth-server.realm}/protocol/openid-connect/logout?redirect_uri=http://localhost:${server.port}/dms-ui/
   realm: # set via EnvFile
   client-id: # set via EnvFile
   client-secret: # set via EnvFile
