@@ -27,7 +27,7 @@
 
 Repository: `https://github.com/octopusden/octopus-dms-ui`
 
-![](dms_offline_token_security_sequence.png)
+![](dms_token_relay_security.png)
 
 ### 1.1 Versions
 
@@ -260,7 +260,7 @@ dms-ui.hostname: <host_name>
 
 Repository: `https://github.com/octopusden/octopus-api-gateway`
 
-![](dms_token_relay_security.png)
+![](dms_offline_token_security_sequence.png)
 
 ### 2.1 Versions
 
