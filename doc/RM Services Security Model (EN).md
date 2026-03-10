@@ -27,6 +27,8 @@
 
 Repository: `https://github.com/octopusden/octopus-dms-ui`
 
+![](dms_offline_token_security_sequence.png)
+
 ### 1.1 Versions
 
 - JDK 21
@@ -257,6 +259,8 @@ dms-ui.hostname: <host_name>
 ## 2. Api-Gateway service
 
 Repository: `https://github.com/octopusden/octopus-api-gateway`
+
+![](dms_token_relay_security.png)
 
 ### 2.1 Versions
 
