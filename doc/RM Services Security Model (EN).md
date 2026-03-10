@@ -107,7 +107,7 @@ Examples of Keycloak configuration taken from `service-config`, which are passed
 
 ```yaml
 auth-server:
- url: https://<sso URL>
+  url: https://<sso URL>
   realm: f1
 ```
 

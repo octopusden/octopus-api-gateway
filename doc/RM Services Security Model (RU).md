@@ -109,7 +109,7 @@ Repository: `https://github.com/octopusden/octopus-dms-ui`
 
 ```yaml
 auth-server:
- url: https://<sso URL>
+  url: https://<sso URL>
   realm: f1
 ```
 
