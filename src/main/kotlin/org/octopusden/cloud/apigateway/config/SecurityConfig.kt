@@ -25,9 +25,6 @@ open class SecurityConfig(
             .authorizeExchange { exchanges: AuthorizeExchangeSpec ->
                 exchanges
                     .pathMatchers(
-                        "/logout/connect/back-channel/**"
-                    ).permitAll()
-                    .pathMatchers(
                         "/"
                     ).authenticated()
                     .anyExchange().permitAll()
