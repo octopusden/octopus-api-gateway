@@ -287,11 +287,13 @@ The Components Management Portal follows the same BFF pattern as DMS-UI (OAuth2 
 ### 1bis.3 Frontend responsibilities
 
 - The SPA never sees raw tokens; auth is a server-side session cookie + double-submit CSRF token (cookie readable by the SPA, echoed in `X-XSRF-TOKEN`).
-- `frontend/src/lib/api.ts` performs all XHR via a thin `fetchApi` wrapper. On `response.status === 401` it triggers a full-page navigation to `/oauth2/authorization/keycloak` to start a fresh OIDC flow.
-- `frontend/src/hooks/useCurrentUser.ts` calls `/auth/me` through TanStack Query; the result drives an auth-state indicator in the layout.
+- 401 is handled in two places, by call-site:
+  - **Data XHR** (`/rest/api/4/...`) goes through `frontend/src/lib/api.ts::fetchApi`. On `response.status === 401` `fetchApi` itself triggers the full-page navigation to `/oauth2/authorization/keycloak`.
+  - **`/auth/me` polling** goes through `frontend/src/lib/auth.ts::fetchCurrentUser`. On 401 it returns `null` (the SPA treats the user as unauthenticated in JS land, no immediate bounce). The OIDC bounce for that signal is fired by `RequirePermission` (`frontend/src/components/RequirePermission.tsx`) via a `useEffect`, but only for permission-gated routes (`/audit`, `/admin`); on unprotected routes (`/`, `/components`, `/components/:id`) the user just sits in a degraded UI state until the next data XHR fires the bounce.
+- `frontend/src/hooks/useCurrentUser.ts` polls `/auth/me` via TanStack Query and drives the auth-state indicator in the header.
 - All XHR sets `X-Requested-With: XMLHttpRequest` as belt-and-braces, but the server gate is path-based.
 
-Because the SPA always interprets `401` as "session expired, do a full-page bounce", the backend **must** return JSON `401` for XHR — never a cross-origin `302` to Keycloak. A `302` would be silently followed by `fetch` (default `redirect: 'follow'`), the cross-origin Keycloak preflight would CORS-fail, and the XHR would reject with `TypeError: Failed to fetch`.
+Because at least one of these handlers (data-XHR `fetchApi`) blindly trusts a `401` to mean "session expired, do a full-page bounce", the backend **must** return JSON `401` for XHR — never a cross-origin `302` to Keycloak. A `302` would be silently followed by `fetch` (default `redirect: 'follow'`), the cross-origin Keycloak preflight would CORS-fail, and the XHR would reject with `TypeError: Failed to fetch`.
 
 ### 1bis.4 Backend responsibilities
 
@@ -355,8 +357,11 @@ class ApiClientAuthorizationFailureFilter(
 
 Starting state: user is logged in, the portal session is valid, but the OAuth2 refresh attempt fails (Keycloak SSO session gone, refresh token expired, etc.).
 
-- **Browser navigation** to `/components`: the SPA bootstrap loads, eventually the chain raises `ClientAuthorizationRequiredException`, `ApiClientAuthorizationFailureFilter` sees a non-API path and re-emits, `OAuth2AuthorizationRequestRedirectWebFilter` sends a full-page `302` to OIDC → fresh Keycloak login → user lands back where they started. Same UX as DMS-UI.
-- **XHR** to `/rest/api/4/components` or `/auth/me`: `TokenRelay` raises the exception inside the reactive chain, `ApiClientAuthorizationFailureFilter` matches the path and writes a JSON `401`, the SPA's `api.ts` 401-handler does `window.location.assign('/oauth2/authorization/keycloak')` from JS, the user lands on a fresh OIDC flow at the top level. **No CORS error, no `Failed to fetch`.**
+- **Browser navigation to a SPA path** (`/`, `/components`, `/components/:id`, etc.): SCG `TokenRelay` only runs on the routed paths (`/rest/**`, `/auth/**`), so navigating to a SPA path never reaches the place where `ClientAuthorizationRequiredException` is raised — the portal session cookie is still valid, the security chain accepts the request, and the SPA shell is served (`200 OK` from `SpaFallbackFilter`). The user notices nothing until the SPA boots and starts XHR.
+- **Data XHR** (`/rest/api/4/components`, `/rest/api/4/owners`, etc.): `TokenRelay` raises `ClientAuthorizationRequiredException`, `ApiClientAuthorizationFailureFilter` matches the path and writes JSON `401`, `api.ts::fetchApi` sees the 401 and immediately does `window.location.assign('/oauth2/authorization/keycloak')` from JS — the user lands on a fresh OIDC flow at the top level. **No CORS error, no `Failed to fetch`.**
+- **`/auth/me` polling**: same backend path — JSON `401` from the filter — but `auth.ts::fetchCurrentUser` treats 401 as "logged out" and returns `null` instead of bouncing. On a permission-gated route (`/audit`, `/admin`) `RequirePermission` then fires the same `window.location.assign(...)` from a `useEffect` once it sees `user == null`. On unprotected routes (`/components` etc.) the bounce is initiated by whichever data XHR fires next — typically a TanStack Query refetch within seconds.
+
+The filter's `else Mono.error(ex)` branch (rethrow for non-API paths) is there as defensive correctness — if some future filter chain ever raises `ClientAuthorizationRequiredException` for a non-routed path, browser navigations should still get the default 302 to OIDC. In this BFF as configured today the rethrow branch is not exercised by production traffic, because TokenRelay is the only origin of that exception and only runs on `/rest/**` and `/auth/**`.
 
 ## 2. Api-Gateway service
 
@@ -1282,9 +1287,9 @@ For full-page navigation, perfect — the browser shows the login form. For an X
 
 DMS-UI and `api-gateway` technically have the same gap, but it is invisible to their users:
 
-- DMS-UI's frontend currently only shows an error toast on failed XHR; users hit refresh, the top-level GET to `/` triggers the `302`, full-page Keycloak login, all good. Less polished but not broken.
+- DMS-UI's frontend only shows an error toast on failed XHR; the user has no automatic recovery path. Recovery happens incidentally — explicit logout, the Spring session timing out and then the next request 302-ing as anonymous, or tab close — none of which is presented to the user as "do this now". Less polished but not actively broken because no SPA component depends on a periodic XHR succeeding.
 - `api-gateway` only serves HTML navigation pages, no XHR, so the failure mode never occurs.
 
-For an SPA-driven BFF this is not acceptable. The Components Management Portal solves it with the pattern documented in section 1bis: a path-aware authentication entry point + an inner `WebFilter` that intercepts `ClientAuthorizationRequiredException` for API/XHR paths and converts it to a JSON `401`, which the SPA's `api.ts` 401-handler turns into a top-level navigation to `/oauth2/authorization/keycloak`. Browser navigations on the same BFF still get the default `302`, so the legitimate full-page flow is unchanged.
+For an SPA-driven BFF this is not acceptable. The Components Management Portal solves it with the pattern documented in section 1bis: a path-aware authentication entry point + an inner `WebFilter` that intercepts `ClientAuthorizationRequiredException` for API/XHR paths and converts it to a JSON `401`. The SPA then bounces from JS — `api.ts::fetchApi` does it directly for data XHR, `auth.ts::fetchCurrentUser` returns `null` and lets `RequirePermission` (or the next data XHR) trigger the bounce on `/auth/me` polling — landing the user on a fresh top-level OIDC flow. Browser navigations on the same BFF still get the default `302` from the un-touched anonymous entry point, so the legitimate full-page flow for unauthenticated users is unchanged.
 
 If DMS-UI ever gains SPA-style XHR polling, the same pattern should be backported.
