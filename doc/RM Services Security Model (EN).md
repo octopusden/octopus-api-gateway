@@ -291,7 +291,7 @@ The Components Management Portal follows the same BFF pattern as DMS-UI (OAuth2 
   - **Data XHR** (`/rest/api/4/...`) goes through `frontend/src/lib/api.ts::fetchApi`. On `response.status === 401` `fetchApi` itself triggers the full-page navigation to `/oauth2/authorization/keycloak`.
   - **`/auth/me` polling** goes through `frontend/src/lib/auth.ts::fetchCurrentUser`. On 401 it returns `null` (the SPA treats the user as unauthenticated in JS land, no immediate bounce). The OIDC bounce for that signal is fired by `RequirePermission` (`frontend/src/components/RequirePermission.tsx`) via a `useEffect`, but only for permission-gated routes (`/audit`, `/admin`); on unprotected routes (`/`, `/components`, `/components/:id`) the user just sits in a degraded UI state until the next data XHR fires the bounce.
 - `frontend/src/hooks/useCurrentUser.ts` polls `/auth/me` via TanStack Query and drives the auth-state indicator in the header.
-- All XHR sets `X-Requested-With: XMLHttpRequest` as belt-and-braces, but the server gate is path-based.
+- All XHR calls set `X-Requested-With: XMLHttpRequest` as belt-and-braces, but the server gate is path-based.
 
 Because at least one of these handlers (data-XHR `fetchApi`) blindly trusts a `401` to mean "session expired, do a full-page bounce", the backend **must** return JSON `401` for XHR — never a cross-origin `302` to Keycloak. A `302` would be silently followed by `fetch` (default `redirect: 'follow'`), the cross-origin Keycloak preflight would CORS-fail, and the XHR would reject with `TypeError: Failed to fetch`.
 
