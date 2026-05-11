@@ -105,7 +105,7 @@ Repository: `https://github.com/octopusden/octopus-dms-ui`
 .csrf { it.disable() }
 ```
 
-> **Note**: this minimal config relies on full-page OIDC redirect being the only auth-failure mode. For BFFs serving SPA XHR (see section 1bis), an extra `ClientAuthorizationRequiredException` interceptor is required — otherwise an authenticated session whose token cannot be refreshed produces a cross-origin 302 to Keycloak that silently CORS-fails the XHR.
+> **Note**: this minimal config relies on full-page OIDC redirect being the only auth-failure mode. For BFFs serving SPA XHR (see section 1bis), a path-aware authentication entry point and an inner `ClientAuthorizationRequiredException` filter are required — otherwise an unauthenticated XHR, or an authenticated session whose token cannot be refreshed, produces a 302 to Keycloak that `fetch()` follows cross-origin and silently CORS-fails.
 
 ### 1.5 User flow with code examples
 
@@ -293,7 +293,7 @@ The Components Management Portal follows the same BFF pattern as DMS-UI (OAuth2 
 - `frontend/src/hooks/useCurrentUser.ts` polls `/auth/me` via TanStack Query and drives the auth-state indicator in the header.
 - All XHR calls set `X-Requested-With: XMLHttpRequest` as belt-and-braces, but the server gate is path-based.
 
-Because at least one of these handlers (data-XHR `fetchApi`) blindly trusts a `401` to mean "session expired, do a full-page bounce", the backend **must** return JSON `401` for XHR — never a cross-origin `302` to Keycloak. A `302` would be silently followed by `fetch` (default `redirect: 'follow'`), the cross-origin Keycloak preflight would CORS-fail, and the XHR would reject with `TypeError: Failed to fetch`.
+Because at least one of these handlers (data-XHR `fetchApi`) blindly trusts a `401` to mean "session expired, do a full-page bounce", the backend **must** return JSON `401` for XHR — never a `302` whose Location is cross-origin to Keycloak. Such a `302` would be silently followed by `fetch` (default `redirect: 'follow'`), the cross-origin Keycloak preflight would CORS-fail, and the XHR would reject with `TypeError: Failed to fetch`.
 
 ### 1bis.4 Backend responsibilities
 

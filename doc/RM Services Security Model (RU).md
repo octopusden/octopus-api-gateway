@@ -107,7 +107,7 @@ Repository: `https://github.com/octopusden/octopus-dms-ui`
 .csrf { it.disable() }
 ```
 
-> **Замечание**: эта минимальная конфигурация предполагает, что единственный сценарий неуспеха аутентификации — full-page редирект на OIDC. Для BFF, обслуживающих SPA по XHR (см. раздел 1bis), нужен дополнительный перехватчик `ClientAuthorizationRequiredException` — иначе валидная сессия с непродлеваемым токеном даст cross-origin `302` на Keycloak, и XHR молча упадёт с CORS-ошибкой.
+> **Замечание**: эта минимальная конфигурация предполагает, что единственный сценарий неуспеха аутентификации — full-page редирект на OIDC. Для BFF, обслуживающих SPA по XHR (см. раздел 1bis), нужны **оба** компонента — path-aware authentication entry point и inner-фильтр `ClientAuthorizationRequiredException` — иначе unauthenticated XHR (нет сессии) или authenticated-сессия с непродлеваемым токеном дадут `302` на Keycloak, `fetch()` пойдёт за этим Location cross-origin, и XHR молча упадёт с CORS-ошибкой.
 
 ### 1.5 User flow c примерами кода
 
@@ -293,7 +293,7 @@ Repository: `https://github.com/octopusden/octopus-components-management-portal`
 - `frontend/src/hooks/useCurrentUser.ts` поллит `/auth/me` через TanStack Query и питает индикатор статуса аутентификации в шапке.
 - На все XHR ставится `X-Requested-With: XMLHttpRequest` (belt-and-braces), но серверный шлюз решает по path.
 
-Поскольку как минимум один из этих handler'ов (data-XHR `fetchApi`) слепо доверяет `401` и трактует его как «сессия истекла, делай full-page bounce», backend **обязан** возвращать JSON `401` для XHR — никогда cross-origin `302` на Keycloak. `302` был бы молча пройден `fetch`-ем (default `redirect: 'follow'`), cross-origin preflight на Keycloak зафейлил бы CORS, и XHR упал бы с `TypeError: Failed to fetch`.
+Поскольку как минимум один из этих handler'ов (data-XHR `fetchApi`) слепо доверяет `401` и трактует его как «сессия истекла, делай full-page bounce», backend **обязан** возвращать JSON `401` для XHR — никогда `302`, у которого Location ведёт cross-origin на Keycloak. Такой `302` был бы молча пройден `fetch`-ем (default `redirect: 'follow'`), cross-origin preflight на Keycloak зафейлил бы CORS, и XHR упал бы с `TypeError: Failed to fetch`.
 
 ### 1bis.4 За что отвечает backend
 
