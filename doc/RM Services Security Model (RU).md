@@ -8,6 +8,13 @@
    3. За что отвечает frontend
    4. За что отвечает backend
    5. User flow c примерами кода
+1bis. `Components Management Portal` service (BFF под SPA с XHR-aware аутентификацией)
+   1. Versions
+   2. Описание
+   3. За что отвечает frontend
+   4. За что отвечает backend
+   5. Зачем нужен дополнительный фильтр
+   6. User flow при провале token refresh
 2. `Api-Gateway` service
    1. Versions
    2. Описание
@@ -20,6 +27,7 @@
    4. Как библиотека подключается и используется в других сервисах
 4. Q&A
    1. Почему когда выполняем логаут в dms-ui, то в api-gateway тоже происходит логаут, и наоборот
+   2. Почему для BFF под SPA нельзя ограничиться тем же простым `oauth2Login`, что в DMS-UI
 
 ![](communication_diagram.png)
 
@@ -98,6 +106,8 @@ Repository: `https://github.com/octopusden/octopus-dms-ui`
 // Отключаем Cross-Site Request Forgery (защиту от межсайтового доступа)
 .csrf { it.disable() }
 ```
+
+> **Замечание**: эта минимальная конфигурация предполагает, что единственный сценарий неуспеха аутентификации — full-page редирект на OIDC. Для BFF, обслуживающих SPA по XHR (см. раздел 1bis), нужны **оба** компонента — path-aware authentication entry point и inner-фильтр `ClientAuthorizationRequiredException` — иначе unauthenticated XHR (нет сессии) или authenticated-сессия с непродлеваемым токеном дадут `302` на Keycloak, `fetch()` пойдёт за этим Location cross-origin, и XHR молча упадёт с CORS-ошибкой.
 
 ### 1.5 User flow c примерами кода
 
@@ -255,6 +265,103 @@ dms-ui.hostname: <host_name>
 ```yaml
 dms-ui.hostname: <host_name>
 ```
+
+## 1bis. Components Management Portal service (BFF под SPA с XHR-aware аутентификацией)
+
+Repository: `https://github.com/octopusden/octopus-components-management-portal`
+
+`Components Management Portal` использует тот же BFF-паттерн, что и DMS-UI (OAuth2 login, серверная сессия, `TokenRelay` проксирует запросы к downstream-сервису — в данном случае Components Registry Service). Отличие — на стороне frontend'а: SPA портала периодически делает XHR на `/auth/me` и фоновые refetch'и данных с предположением, что просроченная сессия отвечает **JSON 401** (а не `302` на OIDC). Это предположение и формирует требования к backend'у.
+
+### 1bis.1 Versions
+
+- JDK 21
+- Kotlin 1.9.25
+- Gradle 8.14.4
+- Spring Boot 3.2.2
+- Spring Cloud 2023.0.1
+
+### 1bis.2 Описание
+
+`octopus-components-management-portal` — это Spring Boot WebFlux + Spring Cloud Gateway BFF, который аутентифицирует браузер через OIDC, хранит access token в серверной сессии и через `TokenRelay` подкладывает его как `Authorization: Bearer <token>` при проксировании `/rest/**` и `/auth/**` в registry service. Дополнительно отдаёт собранный Vite SPA на React из `/static/`.
+
+### 1bis.3 За что отвечает frontend
+
+- SPA не видит сырых токенов; аутентификация — серверная session cookie + double-submit CSRF (cookie доступна SPA, отдаётся обратно в `X-XSRF-TOKEN`).
+- 401 обрабатывается в двух разных местах, в зависимости от call-site:
+  - **Data XHR** (`/rest/api/4/...`) идёт через `frontend/src/lib/api.ts::fetchApi`. На `response.status === 401` сам `fetchApi` инициирует full-page navigation на `/oauth2/authorization/keycloak`.
+  - **`/auth/me`-поллинг** идёт через `frontend/src/lib/auth.ts::fetchCurrentUser`. На 401 он возвращает `null` (SPA трактует пользователя как unauthenticated в JS-land, без немедленного bounce'а). OIDC-bounce на этот сигнал отправляет `RequirePermission` (`frontend/src/components/RequirePermission.tsx`) через `useEffect`, но только для permission-gated роутов (`/audit`, `/admin`); на незащищённых роутах (`/`, `/components`, `/components/:id`) пользователь просто сидит в degraded UI до момента, когда следующий data XHR инициирует bounce.
+- `frontend/src/hooks/useCurrentUser.ts` поллит `/auth/me` через TanStack Query и питает индикатор статуса аутентификации в шапке.
+- На все XHR ставится `X-Requested-With: XMLHttpRequest` (belt-and-braces), но серверный шлюз решает по path.
+
+Поскольку как минимум один из этих handler'ов (data-XHR `fetchApi`) слепо доверяет `401` и трактует его как «сессия истекла, делай full-page bounce», backend **обязан** возвращать JSON `401` для XHR — никогда `302`, у которого Location ведёт cross-origin на Keycloak. Такой `302` был бы молча пройден `fetch`-ем (default `redirect: 'follow'`), cross-origin preflight на Keycloak зафейлил бы CORS, и XHR упал бы с `TypeError: Failed to fetch`.
+
+### 1bis.4 За что отвечает backend
+
+`SecurityConfig.kt` разводит entry point так, чтобы API/XHR вызовы и browser-навигация получали разные ответы на одно и то же «не авторизован»:
+
+```kotlin
+val apiMatcher: ServerWebExchangeMatcher = pathMatchers("/rest/**", "/auth/**")
+val apiEntryPoint =
+    ServerAuthenticationEntryPoint { exchange, _ ->
+        apiJson401Writer.write(exchange, ApiJson401Reason.UNAUTHENTICATED)
+    }
+val browserEntryPoint =
+    RedirectServerAuthenticationEntryPoint("/oauth2/authorization/$OIDC_REGISTRATION_ID")
+val delegatingEntryPoint =
+    DelegatingServerAuthenticationEntryPoint(
+        DelegateEntry(apiMatcher, apiEntryPoint),
+        DelegateEntry(ServerWebExchangeMatchers.anyExchange(), browserEntryPoint),
+    )
+
+http
+    .authorizeExchange { /* ... */ }
+    .oauth2Login(Customizer.withDefaults())
+    .exceptionHandling { it.authenticationEntryPoint(delegatingEntryPoint) }
+    // см. 1bis.5 ниже — зачем нужен этот фильтр
+    .addFilterAfter(
+        ApiClientAuthorizationFailureFilter(apiMatcher, apiJson401Writer),
+        SecurityWebFiltersOrder.OAUTH2_AUTHORIZATION_CODE,
+    )
+    /* ... */
+```
+
+`ApiJson401Writer` — это shared `@Component`, который пишет JSON 401 фиксированной формы (`{"error":"<reason>"}`) с reason-текстом из enum `ApiJson401Reason` — никаких произвольных exception messages в body. И entry point, и фильтр (см. ниже) проходят через него, так что anonymous- и refresh-failed-пути неотличимы для клиента.
+
+### 1bis.5 Зачем нужен дополнительный фильтр
+
+`DelegatingServerAuthenticationEntryPoint` корректно покрывает случай «запрос без аутентификации». Он **не** покрывает случай, когда пользователь *аутентифицирован* (валидная сессия, валидный `OAuth2AuthenticationToken`), но OAuth2 access token нельзя обновить — например потому что SSO-сессия была убита logout'ом из соседнего клиента (см. Q&A 4.1).
+
+Этот провал всплывает в Spring Cloud Gateway `TokenRelayGatewayFilterFactory` как `ClientAuthorizationRequiredException`. По умолчанию его ловит `OAuth2AuthorizationRequestRedirectWebFilter` (зарегистрированный `oauth2Login()` на позиции `SecurityWebFiltersOrder.HTTP_BASIC`) и отправляет `302` на `/oauth2/authorization/keycloak`. Для browser-навигации это правильный UX. Для XHR — это и есть баг из 1bis.3: браузер молча идёт за редиректом, попадает на cross-origin Keycloak preflight, и XHR падает с CORS-ошибкой.
+
+`ApiClientAuthorizationFailureFilter` перехватывает этот эксепшн для `/rest/**` + `/auth/**` путей и проводит ответ через `ApiJson401Writer`. Он должен сидеть INNER относительно `OAuth2AuthorizationRequestRedirectWebFilter`, чтобы ошибка прилетала к нему первым; этого добивается `addFilterAfter(filter, SecurityWebFiltersOrder.OAUTH2_AUTHORIZATION_CODE)` — «after» ставит фильтр на бо́льший order и, соответственно, глубже в цепочке.
+
+```kotlin
+class ApiClientAuthorizationFailureFilter(
+    private val apiMatcher: ServerWebExchangeMatcher,
+    private val writer: ApiJson401Writer,
+) : WebFilter {
+    override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> =
+        chain.filter(exchange).onErrorResume(ClientAuthorizationRequiredException::class.java) { ex ->
+            apiMatcher.matches(exchange).flatMap { match ->
+                if (match.isMatch) {
+                    writer.write(exchange, ApiJson401Reason.AUTHORIZATION_EXPIRED)
+                } else {
+                    Mono.error(ex)  // re-emit, чтобы default redirect filter обрабатывал browser-навигацию как раньше
+                }
+            }
+        }
+}
+```
+
+### 1bis.6 User flow при провале token refresh
+
+Стартовое состояние: пользователь залогинен, серверная сессия портала валидна, но OAuth2 refresh не получается (SSO-сессия Keycloak убита, refresh token истёк и т.п.).
+
+- **Browser navigation на SPA-путь** (`/`, `/components`, `/components/:id` и т.п.): SCG `TokenRelay` бежит только на routed-путях (`/rest/**`, `/auth/**`), поэтому навигация на SPA-путь никогда не доходит до места, где может подняться `ClientAuthorizationRequiredException` — session cookie портала всё ещё валидна, security chain пропускает запрос, и SPA shell отдаётся (`200 OK` от `SpaFallbackFilter`). Пользователь не замечает проблемы, пока SPA не загрузится и не начнёт XHR.
+- **Data XHR** (`/rest/api/4/components`, `/rest/api/4/owners` и т.п.): `TokenRelay` поднимает `ClientAuthorizationRequiredException`, `ApiClientAuthorizationFailureFilter` матчит path и пишет JSON `401`, `api.ts::fetchApi` видит 401 и сразу делает `window.location.assign('/oauth2/authorization/keycloak')` из JS — пользователь попадает на свежий OIDC-флоу на верхнем уровне. **Никаких CORS-ошибок, никакого `Failed to fetch`.**
+- **`/auth/me`-поллинг**: тот же backend-путь — JSON `401` от фильтра — но `auth.ts::fetchCurrentUser` трактует 401 как «logged out» и возвращает `null` вместо bounce'а. На permission-gated роутах (`/audit`, `/admin`) `RequirePermission` затем дергает тот же `window.location.assign(...)` через `useEffect`, как только видит `user == null`. На незащищённых роутах (`/components` и т.п.) bounce инициирует ближайший data XHR — обычно TanStack Query refetch в течение секунд.
+
+`else Mono.error(ex)` ветка фильтра (rethrow для non-API путей) присутствует как defensive correctness — если когда-нибудь в будущем какой-то другой filter chain поднимет `ClientAuthorizationRequiredException` для non-routed пути, browser-навигация всё равно получит дефолтный 302 на OIDC. В текущей конфигурации этого BFF rethrow-ветка не отрабатывает на реальном трафике, потому что TokenRelay — единственный источник этого эксепшна, и работает он только на `/rest/**` и `/auth/**`.
 
 ## 2. Api-Gateway service
 
@@ -1161,3 +1268,25 @@ Spring Security не синхронизирует logout между прилож
 - при повторном OAuth2 Login
 
 То есть, logout в одном клиенте `не отзывает access tokens`, уже выданные другим клиентам. Они остаются валидными Spring-ом до истечения срока жизни, но не могут быть обновлены без новой SSO-сессии.
+
+### 4.2 Почему для BFF под SPA нельзя ограничиться тем же простым `oauth2Login`, что в DMS-UI
+
+Когда BFF обслуживает только full-page навигацию (DMS-UI сегодня, `api-gateway` всегда), `oauth2Login(Customizer.withDefaults())` достаточно: любой провал аутентификации превращается в `302` на OIDC authorization endpoint, и браузер обрабатывает его как обычный top-level редирект — рендерится форма логина Keycloak, пользователь логинится, Spring Security завершает authorization-code flow.
+
+Картинка меняется, как только BFF начинает обслуживать SPA, делающую фоновые XHR на `/auth/me`-поллинг и refetch'и данных (паттерн Components Management Portal — см. раздел 1bis). Спустя время бездействия аутентифицированная сессия с непродлеваемым токеном (типично — потому что SSO-сессия была убита logout'ом из соседнего клиента, см. 4.1) поднимает `ClientAuthorizationRequiredException` в `TokenRelayGatewayFilterFactory`. Default Spring Security: `OAuth2AuthorizationRequestRedirectWebFilter` ловит её и отвечает `302 Location: <Keycloak>/realms/.../protocol/openid-connect/auth?response_type=code&...`.
+
+Для full-page навигации идеально — браузер показывает форму логина. Для XHR — поломка:
+
+1. `fetch()` по умолчанию `redirect: 'follow'`, поэтому браузер молча идёт за cross-origin редиректом на Keycloak.
+2. Cross-origin XHR триггерит CORS preflight (`OPTIONS`) на хост Keycloak.
+3. Authorization endpoint Keycloak не предназначен для XHR и не отдаёт permissive CORS headers под наш origin — даже если бы отдавал, его response это HTML-форма, а не JSON.
+4. Preflight отклоняется → исходный `fetch` reject'ится с `TypeError: Failed to fetch` → SPA показывает generic ошибку, пользователь застревает.
+
+DMS-UI и `api-gateway` технически имеют тот же gap, но он невидим их пользователям:
+
+- Frontend DMS-UI на failed XHR показывает только error toast; автоматического восстановления у пользователя нет. Восстановление происходит окольно — явный logout, истечение Spring-сессии и последующий 302 на анонимного, или закрытие вкладки — ни один из этих путей не предъявлен пользователю как «сделай это сейчас». Менее polished, но не активно сломано: ни один компонент SPA не зависит от регулярно успешного XHR.
+- `api-gateway` отдаёт только HTML-страницы навигации, без XHR — этот сценарий не возникает.
+
+Для BFF под SPA это уже неприемлемо. Components Management Portal решает это паттерном из раздела 1bis: path-aware authentication entry point + inner `WebFilter`, который перехватывает `ClientAuthorizationRequiredException` для API/XHR путей и конвертирует её в JSON `401`. Bounce из JS дальше делает сам SPA — `api.ts::fetchApi` отправляет навигацию напрямую для data XHR, а `auth.ts::fetchCurrentUser` возвращает `null` и оставляет триггерить bounce за `RequirePermission` (или ближайшим data XHR) для `/auth/me`-поллинга — выводя пользователя на свежий top-level OIDC-флоу. Browser-навигация на том же BFF продолжает получать дефолтный `302` от нетронутого anonymous entry point, так что легитимный full-page flow для unauthenticated юзеров не меняется.
+
+Если в будущем DMS-UI обзаведётся SPA-style XHR-поллингом, паттерн стоит backportить.
