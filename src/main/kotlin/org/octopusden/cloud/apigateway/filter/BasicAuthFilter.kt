@@ -13,18 +13,20 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 @Component
-class BasicAuthFilter(private val authServerClient: AuthServerClient) : GlobalFilter {
-
+class BasicAuthFilter(
+    private val authServerClient: AuthServerClient,
+) : GlobalFilter {
     override fun filter(
         exchange: ServerWebExchange,
-        chain: GatewayFilterChain
+        chain: GatewayFilterChain,
     ): Mono<Void> {
         exchange.request
             .headers["Authorization"]
             ?.let { authHeader ->
                 log.debug("Request has Authorization header")
                 if (authHeader.size == 1) {
-                    authHeader.firstOrNull()
+                    authHeader
+                        .firstOrNull()
                         ?.let { header ->
                             if (header.startsWith("Basic")) {
                                 log.debug("Authorization header has 'Basic' prefix, processing authentication")
@@ -48,7 +50,8 @@ class BasicAuthFilter(private val authServerClient: AuthServerClient) : GlobalFi
     }
 
     private fun translateBasicAuthToBearerAccessToken(basicAuth: String): String? {
-        val authString = Base64.getDecoder()
+        val authString = Base64
+            .getDecoder()
             .decode(basicAuth)
             .decodeToString()
 
@@ -57,7 +60,8 @@ class BasicAuthFilter(private val authServerClient: AuthServerClient) : GlobalFi
 
         val offlineJwt = authTokens[authString]
             ?.let { existedOfflineJwt ->
-                val currentTime = Instant.now()
+                val currentTime = Instant
+                    .now()
                     .plusSeconds(60)
 
                 if (existedOfflineJwt.accessTokenExpDate > currentTime) {
@@ -85,14 +89,16 @@ class BasicAuthFilter(private val authServerClient: AuthServerClient) : GlobalFi
         }
     }
 
-    private fun generateToken(username: String, password: String) =
-        try {
-            authServerClient.generateOfflineJwt(username, password)
-        } catch (e: Exception) {
-            log.error("Can't authenticate '$username': ${e.message}")
-            log.debug("Stacktrace:", e)
-            null
-        }
+    private fun generateToken(
+        username: String,
+        password: String,
+    ) = try {
+        authServerClient.generateOfflineJwt(username, password)
+    } catch (e: Exception) {
+        log.error("Can't authenticate '$username': ${e.message}")
+        log.debug("Stacktrace:", e)
+        null
+    }
 
     private fun refreshToken(existedOfflineJwt: OfflineJwt) =
         try {

@@ -1,5 +1,5 @@
 # INTERNAL — runs on push to main, on manual dispatch, and as a workflow_call unit of the Merge Gate.
-name: Gradle Build & UT
+name: Quality
 
 on:
   push:
@@ -8,10 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    uses: octopusden/octopus-base/.github/workflows/common-java-gradle-build.yml@v2.3.5
+  quality:
+    uses: octopusden/octopus-base/.github/workflows/common-java-gradle-quality-gates.yml@v2.3.5
     with:
-      flow-type: hybrid
       java-version: '21'
-      docker-image: api-gateway
     secrets: inherit
