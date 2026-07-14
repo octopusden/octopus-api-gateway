@@ -9,7 +9,7 @@ pluginManagement {
         id("com.bmuschko.docker-spring-boot-application") version (extra["bmuschko-docker-plugin.version"] as String)
         id("io.gitlab.arturbosch.detekt") version (extra["detekt.version"] as String)
         id("org.jlleitschuh.gradle.ktlint") version (extra["ktlint-gradle.version"] as String)
-        id("org.octopusden.octopus-quality") version "2.3.5"
+        id("org.octopusden.octopus-quality") version "2.4.0"
     }
     repositories {
         gradlePluginPortal()
