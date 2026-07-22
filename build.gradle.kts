@@ -6,6 +6,21 @@ plugins {
     `maven-publish`
     id("io.github.gradle-nexus.publish-plugin")
     signing
+    id("io.gitlab.arturbosch.detekt")
+    id("org.jlleitschuh.gradle.ktlint")
+    id("org.octopusden.octopus-quality")
+}
+
+octopusQuality {
+    // Repo has no coverage tool configured yet — disable coverage verification.
+    coverage {
+        enabled.set(false)
+    }
+    // Enforce Kotlin static analysis (detekt + ktlint); current debt is absorbed by
+    // detekt-baseline.xml / ktlint-baseline.xml so the gate stays green while enforcing.
+    kotlin {
+        failOnViolation.set(true)
+    }
 }
 
 group = "org.octopusden.cloud.api-gateway"
@@ -39,7 +54,6 @@ nexusPublishing {
 publishing {
     repositories {
         maven {
-
         }
     }
     publications {
@@ -83,7 +97,10 @@ springBoot {
 }
 
 val dockerRegistry = System.getenv().getOrDefault("DOCKER_REGISTRY", project.properties["docker.registry"]) as? String
-val octopusGithubDockerRegistry = System.getenv().getOrDefault("OCTOPUS_GITHUB_DOCKER_REGISTRY", project.properties["octopus.github.docker.registry"]) as? String
+val octopusGithubDockerRegistry = System.getenv().getOrDefault(
+    "OCTOPUS_GITHUB_DOCKER_REGISTRY",
+    project.properties["octopus.github.docker.registry"],
+) as? String
 
 docker {
     springBootApplication {
@@ -135,11 +152,11 @@ fun validateDockerRegistryParams() {
     if (dockerRegistry.isNullOrBlank() || octopusGithubDockerRegistry.isNullOrBlank()) {
         throw IllegalArgumentException(
             "Start gradle build with" +
-                    (if (dockerRegistry.isNullOrBlank()) " -Pdocker.registry=..." else "") +
-                    (if (octopusGithubDockerRegistry.isNullOrBlank()) " -Poctopus.github.docker.registry=..." else "") +
-                    " or set env variable(s):" +
-                    (if (dockerRegistry.isNullOrBlank()) " DOCKER_REGISTRY" else "") +
-                    (if (octopusGithubDockerRegistry.isNullOrBlank()) " OCTOPUS_GITHUB_DOCKER_REGISTRY" else "")
+                (if (dockerRegistry.isNullOrBlank()) " -Pdocker.registry=..." else "") +
+                (if (octopusGithubDockerRegistry.isNullOrBlank()) " -Poctopus.github.docker.registry=..." else "") +
+                " or set env variable(s):" +
+                (if (dockerRegistry.isNullOrBlank()) " DOCKER_REGISTRY" else "") +
+                (if (octopusGithubDockerRegistry.isNullOrBlank()) " OCTOPUS_GITHUB_DOCKER_REGISTRY" else ""),
         )
     }
 }

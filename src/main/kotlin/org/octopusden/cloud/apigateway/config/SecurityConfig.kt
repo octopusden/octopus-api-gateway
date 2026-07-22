@@ -25,18 +25,16 @@ open class SecurityConfig(
             .authorizeExchange { exchanges: AuthorizeExchangeSpec ->
                 exchanges
                     .pathMatchers(
-                        "/"
+                        "/",
                     ).authenticated()
-                    .anyExchange().permitAll()
-            }
-            .oauth2Login(Customizer.withDefaults())
+                    .anyExchange()
+                    .permitAll()
+            }.oauth2Login(Customizer.withDefaults())
             .logout { logout ->
                 logout.logoutSuccessHandler(oidcLogoutSuccessHandler())
-            }
-            .oidcLogout { oidcLogout ->
+            }.oidcLogout { oidcLogout ->
                 oidcLogout.backChannel(Customizer.withDefaults())
-            }
-            .csrf { it.disable() }
+            }.csrf { it.disable() }
         return http.build()
     }
 
