@@ -13,4 +13,14 @@ jobs:
       commit-hash: ${{ github.event.client_payload.commit }}
       build-version: ${{ github.event.client_payload.project_version }}
       docker-image: api-gateway
+      # The gateway is a deployable app shipped as a docker image on ghcr; nothing consumes
+      # it as a Maven dependency. Skip publishing its ~59 MB Spring Boot fat jar to Sonatype
+      # Central — one release alone ate 75% of the org's 80 MB monthly limit.
+      publish-to-nexus: false
+      # Register the release in octopus-release-log directly at the end of this run. The
+      # separate check-and-register workflow polled Maven Central for the published jar —
+      # with publish-to-nexus=false that jar never appears, so that path is removed (see
+      # deleted check-and-register.yml). The docker push above is synchronous, so the
+      # release artifact (the image) already exists by here.
+      register-release-immediately: true
     secrets: inherit
