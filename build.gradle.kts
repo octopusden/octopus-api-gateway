@@ -51,46 +51,11 @@ nexusPublishing {
     }
 }
 
-publishing {
-    repositories {
-        maven {
-        }
-    }
-    publications {
-        create<MavenPublication>("bootJar") {
-            from(components["java"])
-            artifact(tasks.getByName("bootJar"))
-            pom {
-                name.set(project.name)
-                description.set("Octopus module: ${project.name}")
-                url.set("https://github.com/octopusden/octopus-api-gateway.git")
-                licenses {
-                    license {
-                        name.set("The Apache License, Version 2.0")
-                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-                    }
-                }
-                scm {
-                    url.set("https://github.com/octopusden/octopus-api-gateway.git")
-                    connection.set("scm:git://github.com/octopusden/octopus-api-gateway.git")
-                }
-                developers {
-                    developer {
-                        id.set("octopus")
-                        name.set("octopus")
-                    }
-                }
-            }
-        }
-    }
-}
-
-signing {
-    val signingKey: String? by project
-    val signingPassword: String? by project
-    useInMemoryPgpKeys(signingKey, signingPassword)
-    sign(publishing.publications["bootJar"])
-}
+// Not published to Maven Central: the gateway is a deployable, its deliverable is the docker
+// image on ghcr, and nothing consumes it as a Maven dependency. `publish-to-nexus: false` in
+// .github/workflows/release.yml keeps the release pipeline away from Sonatype; declaring no
+// publication here is the second half of that — without it a manual `./gradlew publishToSonatype`
+// with valid OSSRH credentials could still upload the ~59 MB fat jar.
 
 springBoot {
     buildInfo()
