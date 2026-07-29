@@ -25,7 +25,6 @@ octopusQuality {
 
 group = "org.octopusden.cloud.api-gateway"
 
-
 tasks.withType<GenerateModuleMetadata> {
     // The value 'enforced-platform' is provided in the validation
     // error message
