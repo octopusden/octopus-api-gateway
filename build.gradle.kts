@@ -25,10 +25,6 @@ octopusQuality {
 
 group = "org.octopusden.cloud.api-gateway"
 
-java {
-    withJavadocJar()
-    withSourcesJar()
-}
 
 tasks.withType<GenerateModuleMetadata> {
     // The value 'enforced-platform' is provided in the validation
@@ -51,11 +47,9 @@ nexusPublishing {
     }
 }
 
-// Not published to Maven Central: the gateway is a deployable, its deliverable is the docker
-// image on ghcr, and nothing consumes it as a Maven dependency. `publish-to-nexus: false` in
-// .github/workflows/release.yml keeps the release pipeline away from Sonatype; declaring no
-// publication here is the second half of that — without it a manual `./gradlew publishToSonatype`
-// with valid OSSRH credentials could still upload the ~59 MB fat jar.
+// No MavenPublication is declared on purpose: this module is not published to Maven Central,
+// so `publishToSonatype` has nothing to upload even when run manually with credentials.
+// Javadoc/sources jars are likewise not built — they existed only for that publication.
 
 springBoot {
     buildInfo()
