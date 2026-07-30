@@ -13,4 +13,10 @@ jobs:
       commit-hash: ${{ github.event.client_payload.commit }}
       build-version: ${{ github.event.client_payload.project_version }}
       docker-image: api-gateway
+      # false = do not publish Maven artifacts to Sonatype Central. The deliverable is the
+      # docker image above; nothing consumes this repository as a Maven dependency.
+      publish-to-nexus: false
+      # true = register the release in octopus-release-log at the end of this run, instead of
+      # waiting for a Central artifact that publish-to-nexus=false never produces.
+      register-release-immediately: true
     secrets: inherit

@@ -25,11 +25,6 @@ octopusQuality {
 
 group = "org.octopusden.cloud.api-gateway"
 
-java {
-    withJavadocJar()
-    withSourcesJar()
-}
-
 tasks.withType<GenerateModuleMetadata> {
     // The value 'enforced-platform' is provided in the validation
     // error message
@@ -51,46 +46,9 @@ nexusPublishing {
     }
 }
 
-publishing {
-    repositories {
-        maven {
-        }
-    }
-    publications {
-        create<MavenPublication>("bootJar") {
-            from(components["java"])
-            artifact(tasks.getByName("bootJar"))
-            pom {
-                name.set(project.name)
-                description.set("Octopus module: ${project.name}")
-                url.set("https://github.com/octopusden/octopus-api-gateway.git")
-                licenses {
-                    license {
-                        name.set("The Apache License, Version 2.0")
-                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-                    }
-                }
-                scm {
-                    url.set("https://github.com/octopusden/octopus-api-gateway.git")
-                    connection.set("scm:git://github.com/octopusden/octopus-api-gateway.git")
-                }
-                developers {
-                    developer {
-                        id.set("octopus")
-                        name.set("octopus")
-                    }
-                }
-            }
-        }
-    }
-}
-
-signing {
-    val signingKey: String? by project
-    val signingPassword: String? by project
-    useInMemoryPgpKeys(signingKey, signingPassword)
-    sign(publishing.publications["bootJar"])
-}
+// No MavenPublication is declared on purpose: this module is not published to Maven Central,
+// so `publishToSonatype` has nothing to upload even when run manually with credentials.
+// Javadoc/sources jars are likewise not built — they existed only for that publication.
 
 springBoot {
     buildInfo()
