@@ -12,6 +12,17 @@ plugins {
 }
 
 octopusQuality {
+    // This repository must publish NOTHING to Maven Central. #34 removed the publication and
+    // `release.yml` sets `publish-to-nexus: false`; the empty declared set turns that from an
+    // absence into an invariant the build enforces, so a publication reappearing fails the gate.
+    //
+    // Verification differs from the non-empty case and is easy to misread: with an empty set GREEN
+    // prints NOTHING, so a passing run is not by itself evidence the task executed, and RED can
+    // only be shown by temporarily ADDING a publication.
+    publication {
+        enforceCentralPublications.set(true)
+        centralPublications.set(emptySet())
+    }
     // Repo has no coverage tool configured yet — disable coverage verification.
     coverage {
         enabled.set(false)
