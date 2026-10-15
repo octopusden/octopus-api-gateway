@@ -9,7 +9,7 @@ pluginManagement {
         id("com.bmuschko.docker-spring-boot-application") version (extra["bmuschko-docker-plugin.version"] as String)
         id("io.gitlab.arturbosch.detekt") version (extra["detekt.version"] as String)
         id("org.jlleitschuh.gradle.ktlint") version (extra["ktlint-gradle.version"] as String)
-        id("org.octopusden.octopus-quality") version "3.0.0"
+        id("org.octopusden.octopus-quality") version "3.2.1"
         id("org.sonarqube") version (extra["sonarqube.version"] as String)
     }
     repositories {
